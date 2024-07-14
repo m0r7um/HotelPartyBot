@@ -1,0 +1,19 @@
+spring:
+  h2:
+    console.enabled: true
+  application:
+    name: GoPartyBot
+  datasource:
+    url: jdbc:h2:mem:mydb
+    username:
+    password:
+    driverClassName: org.h2.Driver
+    jpa:
+      database-platform: org.hibernate.dialect.H2Dialect
+
+telegram:
+  botName: GoPartyBot
+  token: ${TELEGRAM_TOKEN}
+
+server:
+  port: 8070
