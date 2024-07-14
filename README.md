@@ -4,7 +4,7 @@
 ## Бот для организации вечеринок в отеле
 
 ### Cтек технологий:
-H2, Spring (web, telegrambots, telegrambotsextensions, data-jpa, log4j), Kotlin
+H2, Spring (web, telegrambots, telegrambotsextensions, data-jpa), Kotlin
 
 ### Описание предметной области
 - В одном номере живет 1 человек.
