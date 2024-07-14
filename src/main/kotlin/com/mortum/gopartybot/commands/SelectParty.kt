@@ -12,7 +12,7 @@ import org.telegram.telegrambots.meta.bots.AbsSender
 
 @Component
 class SelectParty(
-    val userService: UserService
+    private val userService: UserService
 ): BotCommand(CommandName.SELECT.text, ""){
     override fun execute(absSender: AbsSender, user: User, chat: Chat, arguments: Array<out String>) {
         absSender.execute(createMessage(chat.id.toString(), "Введите айди вечеринки"))

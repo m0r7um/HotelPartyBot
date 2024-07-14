@@ -16,6 +16,19 @@ class SelectPartyHandler(
     private val userService: UserService
 ) : CallbackHandler {
     override val name: HandlerName = HandlerName.SELECT_PARTY
+
+    private val NUMBER_NOT_PRESENT_MESSAGE = "Вы не указали свой номер. Введите свой номер и нажмите присоединиться еще раз:"
+
+    private val CONNECTED_TO_PARTY_MESSAGE = "Вы присоединились к вечеринке"
+
+    private val CANT_CONNECT_TO_MULTIPLE_PARTIES_MESSAGE = "Вы не можете присоединиться к нескольким вечеринкам.\n" +
+                                                            "Возможно, вы являетесь создателем одной из вечеринок"
+
+    private val PARTY_IS_OVER_CONNECT_MESSAGE = "Данная вечеринка уже была завершена :("
+
+    private val INCORRECT_NUMBER_FORMAT_MESSAGE = "Введенный текст не является числом. Повторите ввод:"
+
+    private val PARTY_IS_OVER_FINISH_MESSAGE = "Вечеринка завершена"
     override fun processCallbackData(
         absSender: AbsSender,
         callbackQuery: CallbackQuery,
@@ -54,7 +67,7 @@ class SelectPartyHandler(
 
                     partyService.addParty(newParty)
 
-                    absSender.execute(createMessage(chatId, "Вечеринка завершена"))
+                    absSender.execute(createMessage(chatId, PARTY_IS_OVER_FINISH_MESSAGE))
 
                     sendToUsers(
                         users = users, absSender = absSender, message = "Вечеринка №$partyId: ${party.name}\n" +
@@ -69,7 +82,7 @@ class SelectPartyHandler(
                         absSender.execute(
                             createMessage(
                                 chatId = chatId,
-                                text = "Вы не указали свой номер. Введите свой номер и попробуйте присоединиться еще раз:"
+                                text = NUMBER_NOT_PRESENT_MESSAGE
                             )
                         )
 
@@ -83,13 +96,12 @@ class SelectPartyHandler(
                         userService.updateStepById(userId, Step.COMMON_MESSAGE)
                         userService.updateUserPartyById(userId, party)
                         partyService.addParty(party)
-                        absSender.execute(createMessage(chatId, "Вы присоединились к вечеринке"))
+                        absSender.execute(createMessage(chatId, CONNECTED_TO_PARTY_MESSAGE))
                     } else {
                         absSender.execute(
                             createMessage(
                                 chatId = chatId,
-                                text = "Вы не можете присоединиться к нескольким вечеринкам.\n" +
-                                        "Возможно, вы являетесь создателем одной из вечеринок"
+                                text = CANT_CONNECT_TO_MULTIPLE_PARTIES_MESSAGE
                             )
                         )
                         userService.updateStepById(userId, Step.COMMON_MESSAGE)
@@ -99,12 +111,12 @@ class SelectPartyHandler(
                 absSender.execute(
                     createMessage(
                         chatId = chatId,
-                        text = "Данная вечеринка уже была завершена :("
+                        text = PARTY_IS_OVER_CONNECT_MESSAGE
                     )
                 )
             }
         } catch (e: NumberFormatException) {
-            absSender.execute(createMessage(chatId, "Введенный текст не является числом. Повторите ввод"))
+            absSender.execute(createMessage(chatId, INCORRECT_NUMBER_FORMAT_MESSAGE))
         }
     }
 

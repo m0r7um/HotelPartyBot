@@ -4,6 +4,7 @@ import com.mortum.gopartybot.handler.CallbackHandler
 import com.mortum.gopartybot.handler.HandlerName
 import com.mortum.gopartybot.persistance.model.Party
 import com.mortum.gopartybot.persistance.model.PartyForm
+import com.mortum.gopartybot.persistance.model.User
 import com.mortum.gopartybot.service.logic.PartyFormService
 import com.mortum.gopartybot.service.logic.PartyService
 import com.mortum.gopartybot.service.logic.UserService
@@ -40,6 +41,20 @@ class GoPartyBot(
     @Value("\${telegram.botName}")
     private val botName: String = ""
 
+    private val SUCCESS_PARTY_ADDING_MESSAGE = "Ваша вечеринка добавлена успешно!"
+
+    private val INPUT_PARTY_NAME_MESSAGE = "Введите название вечеринки:"
+
+    private val INCORRECT_NUMBER_FORMAT_MESSAGE = "Введенный текст не является числом. Введите ваш номер:"
+
+    private val OCCUPIED_NUMBER_MESSAGE = "В данном номере уже кто-то живет. Введите другой номер:"
+
+    private val PARTY_IS_OVER_MESSAGE = "Данная вечеринка уже завершена"
+
+    private val PARTY_NOT_FOUND_MESSAGE = "Вечеринки с данным айди не существует."
+
+    private val NUMBER_IS_PRESENT_MESSAGE = "Вы указали свой номер"
+
     override fun getBotUsername(): String = botName
 
     override fun filter(message: Message?): Boolean {
@@ -56,29 +71,7 @@ class GoPartyBot(
             val userId = update.message.from.id
             if (userService.existsById(userId)) {
                 userService.findById(userId).ifPresent {
-
-                    when (it.step) {
-                        Step.COMMON_MESSAGE -> {
-                            onCommonMessage(update)
-                        }
-
-                        Step.CREATE_INPUT_NUMBER -> {
-                            onCreateInputNumber(update)
-                        }
-
-                        Step.CREATE_INPUT_NAME -> {
-                            onCreateInputName(update)
-                        }
-
-                        Step.SELECT_INPUT_PARTY_ID -> {
-                            onSelectInputPartyId(update)
-                        }
-
-                        Step.SELECT_INPUT_NUMBER -> {
-                            onSelectInputNumber(update)
-                        }
-                    }
-
+                    chooseStep(it, update)
                 }
             }
 
@@ -101,6 +94,30 @@ class GoPartyBot(
         }
     }
 
+    private fun chooseStep(user: User, update: Update) {
+        when (user.step) {
+            Step.COMMON_MESSAGE -> {
+                onCommonMessage(update)
+            }
+
+            Step.CREATE_INPUT_NUMBER -> {
+                onCreateInputNumber(update)
+            }
+
+            Step.CREATE_INPUT_NAME -> {
+                onCreateInputName(update)
+            }
+
+            Step.SELECT_INPUT_PARTY_ID -> {
+                onSelectInputPartyId(update)
+            }
+
+            Step.SELECT_INPUT_NUMBER -> {
+                onSelectInputNumber(update)
+            }
+        }
+    }
+
     private fun onCommonMessage(update: Update) {
         if (update.message.hasText()) {
             execute(createMessage(update.message.chatId.toString(), "Вы написали: *${update.message.text}*"))
@@ -118,14 +135,14 @@ class GoPartyBot(
 
         userService.updateUserPartyById(user.id, newParty)
 
-        execute(createMessage(update.message.chatId.toString(), "Ваша вечеринка добавлена успешно!"))
+        execute(createMessage(update.message.chatId.toString(), SUCCESS_PARTY_ADDING_MESSAGE))
 
         userService.updateStepById(update.message.from.id, Step.COMMON_MESSAGE)
 
         partyFormService.deleteByUser(user)
     }
 
-    fun onCreateInputNumber(update: Update) {
+    private fun onCreateInputNumber(update: Update) {
         try {
             val id = update.message.from.id
             val number = update.message.text.trim().toInt()
@@ -133,7 +150,7 @@ class GoPartyBot(
 
             userService.updateUserNumberById(id, number)
 
-            execute(createMessage(update.message.chatId.toString(), "Введите название вечеринки:"))
+            execute(createMessage(update.message.chatId.toString(), INPUT_PARTY_NAME_MESSAGE))
 
             partyFormService.addPartyForm(PartyForm(owner = user))
 
@@ -142,20 +159,20 @@ class GoPartyBot(
             execute(
                 createMessage(
                     update.message.chatId.toString(),
-                    "Введенный текст не является числом. Введите ваш номер:"
+                    INCORRECT_NUMBER_FORMAT_MESSAGE
                 )
             )
         } catch (e: DataIntegrityViolationException) {
             execute(
                 createMessage(
                     update.message.chatId.toString(),
-                    "В данном номере уже кто-то живет. Введите другой номер:"
+                    OCCUPIED_NUMBER_MESSAGE
                 )
             )
         }
     }
 
-    fun onSelectInputPartyId(update: Update) {
+    private fun onSelectInputPartyId(update: Update) {
         try {
             val partyId = update.message.text.toLong()
             val userId = update.message.from.id
@@ -166,7 +183,7 @@ class GoPartyBot(
                 // если вечеринка существует
                 {
                     if (it.finished) {
-                        execute(createMessage(update.message.chatId.toString(), "Данная вечеринка уже завершена"))
+                        execute(createMessage(update.message.chatId.toString(), PARTY_IS_OVER_MESSAGE))
                         userService.updateStepById(userId, Step.COMMON_MESSAGE)
                         return@ifPresentOrElse
                     }
@@ -206,8 +223,7 @@ class GoPartyBot(
                     execute(
                         createMessage(
                             chatId = update.message.chatId.toString(),
-                            text = "Вечеринки с данным айди не существует.\n" +
-                                    "Возможно она уже была завершена другим пользователем"
+                            text = PARTY_NOT_FOUND_MESSAGE
                         )
                     )
                 }
@@ -216,33 +232,33 @@ class GoPartyBot(
             execute(
                 createMessage(
                     chatId = update.message.chatId.toString(),
-                    "Введенный текст не является целым числом"
+                    INCORRECT_NUMBER_FORMAT_MESSAGE
                 )
             )
         }
     }
 
-    fun onSelectInputNumber(update: Update) {
+    private fun onSelectInputNumber(update: Update) {
         try {
             val id = update.message.from.id
             val number = update.message.text.trim().toInt()
 
             userService.updateUserNumberById(id, number)
 
-            execute(createMessage(update.message.chatId.toString(), "Вы указали свой номер"))
+            execute(createMessage(update.message.chatId.toString(), NUMBER_IS_PRESENT_MESSAGE))
             userService.updateStepById(id, Step.COMMON_MESSAGE)
         } catch (e: NumberFormatException) {
             execute(
                 createMessage(
                     update.message.chatId.toString(),
-                    "Введенный текст не является числом. Введите ваш номер:"
+                    INCORRECT_NUMBER_FORMAT_MESSAGE
                 )
             )
         } catch (e: DataIntegrityViolationException) {
             execute(
                 createMessage(
                     update.message.chatId.toString(),
-                    "В данном номере уже кто-то живет. Введите другой номер:"
+                    OCCUPIED_NUMBER_MESSAGE
                 )
             )
         }
